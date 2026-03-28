@@ -1,0 +1,11 @@
+node_modules/
+dist/
+dist-ssr/
+build/
+*.exe
+*.dll
+*.pdb
+.env
+.env.*
+!.env.example
+.vite

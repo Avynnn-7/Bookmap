@@ -1,0 +1,74 @@
+.heatmap-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    background-color: #0a0a0c;
+    overflow: hidden;
+    font-family: 'Inter', 'Roboto Mono', sans-serif;
+}
+
+.heatmap-overlay {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 10;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.pulse-green, .pulse-red {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.pulse-green {
+    background-color: #00ff88;
+    box-shadow: 0 0 10px #00ff88, 0 0 20px #00ff88;
+    animation: pulseG 2s infinite;
+}
+
+.pulse-red {
+    background-color: #ff0055;
+    box-shadow: 0 0 10px #ff0055, 0 0 20px #ff0055;
+    animation: pulseR 2s infinite;
+}
+
+@keyframes pulseG {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
+}
+@keyframes pulseR {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.2); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.price-display {
+    font-size: 48px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+}
+
+.heatmap-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}

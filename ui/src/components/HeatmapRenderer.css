@@ -1,74 +1,120 @@
 .heatmap-container {
-    position: relative;
-    width: 100vw;
-    height: 100vh;
-    background-color: #0a0a0c;
-    overflow: hidden;
-    font-family: 'Inter', 'Roboto Mono', sans-serif;
-}
-
-.heatmap-overlay {
-    position: absolute;
-    top: 20px;
-    left: 20px;
-    z-index: 10;
-    color: white;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    pointer-events: none;
-}
-
-.status-indicator {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: rgba(255, 255, 255, 0.7);
-}
-
-.pulse-green, .pulse-red {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    display: inline-block;
-}
-
-.pulse-green {
-    background-color: #00ff88;
-    box-shadow: 0 0 10px #00ff88, 0 0 20px #00ff88;
-    animation: pulseG 2s infinite;
-}
-
-.pulse-red {
-    background-color: #ff0055;
-    box-shadow: 0 0 10px #ff0055, 0 0 20px #ff0055;
-    animation: pulseR 2s infinite;
-}
-
-@keyframes pulseG {
-    0% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.2); opacity: 0.8; }
-    100% { transform: scale(1); opacity: 1; }
-}
-@keyframes pulseR {
-    0% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.2); opacity: 0.8; }
-    100% { transform: scale(1); opacity: 1; }
-}
-
-.price-display {
-    font-size: 48px;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    text-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+  flex-grow: 1;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background-color: var(--bg-dark);
 }
 
 .heatmap-canvas {
-    width: 100%;
-    height: 100%;
-    display: block;
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated; /* Ensures sharp edges for heatmap blocks */
+}
+
+/* Glassmorphism Float Panels overlaying heatmap */
+.heatmap-overlay {
+  position: absolute;
+  top: 80px; /* Below top header */
+  left: 30px;
+  pointer-events: none;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.status-panel, .price-panel {
+  background: var(--bg-panel);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border-glass);
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* Status Indicator */
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.status-indicator span {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.pulse-green {
+  background-color: var(--accent-green);
+  box-shadow: 0 0 8px var(--accent-green);
+  animation: pulseGlow 1.5s infinite;
+}
+
+.pulse-red {
+  background-color: var(--accent-red);
+  box-shadow: 0 0 8px var(--accent-red);
+}
+
+.pulse-yellow {
+  background-color: #ffd000;
+  box-shadow: 0 0 8px #ffd000;
+  animation: pulseGlow 1.5s infinite;
+}
+
+/* Current Traded Price */
+.price-display {
+  font-family: 'Inter', sans-serif;
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-primary);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
+  letter-spacing: -1px;
+  margin-top: 2px;
+}
+
+/* Axis Labels container (Y axis right side pricing) */
+.price-y-axis {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 65px;
+  background: rgba(5, 5, 7, 0.8);
+  border-left: 1px solid var(--border-glass);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.price-y-label {
+  position: absolute;
+  right: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-secondary);
+  transform: translateY(-50%);
+}
+
+.current-price-tag {
+  position: absolute;
+  right: 0;
+  width: 100%;
+  background: var(--accent-red);
+  color: white;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 10px;
+  text-align: right;
+  box-shadow: -2px 0 10px rgba(255, 0, 85, 0.4);
+  transform: translateY(-50%);
+  z-index: 6;
 }

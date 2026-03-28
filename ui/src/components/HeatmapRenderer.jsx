@@ -5,12 +5,14 @@ const HeatmapRenderer = () => {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
     const ssrRef = useRef(null);
+    const centerScaleRef = useRef(0);
     
     // Config
     const TICK_W = 2; // pixels per time tick
     const MIN_VOL = 0;
     const MAX_VOL = 500; // Expected max volume to normalize colors
-    const PRICE_SCROLL = 50; // Visible levels up/down
+    const PRICE_SCROLL = 60; // Visible levels up/down from centerScale
+    const TICK_SIZE = 0.5;
 
     const [currentPrice, setCurrentPrice] = useState(0);
     const [status, setStatus] = useState('Connecting...');
@@ -19,7 +21,7 @@ const HeatmapRenderer = () => {
     const getColor = (vol) => {
         if (!vol) return 'rgba(10,10,12,1)'; // bg color
         let rat = vol / MAX_VOL;
-        if (rat > 1) rat = 1;
+        if (rat > 1) rat = 1; // max cap
 
         if (rat < 0.2) return `rgba(0, 0, ${100 + rat * 5 * 155}, 1)`;
         if (rat < 0.4) return `rgba(0, ${(rat - 0.2) * 5 * 255}, 255, 1)`;
@@ -32,20 +34,16 @@ const HeatmapRenderer = () => {
     useEffect(() => {
         const fetchStream = () => {
             console.log("Connecting to SSE...");
-            // Auto-detect if we're running locally vs Vercel
-            // If on Vercel, use the public tunnel to reach the home PC's backend
             const endpoint = window.location.hostname === 'localhost' 
                 ? 'http://localhost:3001/stream' 
                 : 'https://e991bce81ac0b5.lhr.life/stream';
             
             const evtSource = new EventSource(endpoint);
-            
             setStatus('Connected to C++ Engine Live Feed');
 
             const canvas = canvasRef.current;
-            const ctx = canvas.getContext('2d', { alpha: false }); // optimize
+            const ctx = canvas.getContext('2d', { alpha: false }); 
             
-            // Offscreen canvas for very fast scrolling
             const off = document.createElement('canvas');
             off.width = canvas.width;
             off.height = canvas.height;
@@ -57,58 +55,58 @@ const HeatmapRenderer = () => {
             ctx.fillStyle = '#0a0a0c';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            let lastPrice = 0;
-
             evtSource.onmessage = (event) => {
                 const data = JSON.parse(event.data);
                 if (data.type === 'snapshot') {
                     const price = data.price;
                     setCurrentPrice(price);
-                    lastPrice = price;
 
-                    // 1. Shift offscreen canvas LEFT by TICK_W
+                    // Initialize or jump scale if price drifts too far
+                    if (centerScaleRef.current === 0 || Math.abs(price - centerScaleRef.current) > (PRICE_SCROLL - 10) * TICK_SIZE) {
+                        centerScaleRef.current = price;
+                        // Draw a full vertical red line to indicate scale wipe/jump
+                        octx.fillStyle = '#ff0055'; 
+                        octx.fillRect(off.width - TICK_W, 0, TICK_W, off.height);
+                    }
+
+                    const topPrice = centerScaleRef.current + (PRICE_SCROLL * TICK_SIZE);
+                    const bottomPrice = centerScaleRef.current - (PRICE_SCROLL * TICK_SIZE);
+
+                    // Shift offscreen canvas LEFT
                     octx.drawImage(off, TICK_W, 0, off.width - TICK_W, off.height, 0, 0, off.width - TICK_W, off.height);
                     
-                    // Clear the newly exposed strip on the right
+                    // Clear newest strip
                     octx.fillStyle = '#0a0a0c';
                     octx.fillRect(off.width - TICK_W, 0, TICK_W, off.height);
 
-                    // We have 200 levels (100 bid, 100 ask).
-                    // Draw vertical strip for this tick on the rightmost edge.
-                    // Instead of full 200 (which varies), let's render a fixed range around current price
-                    // We assume TICK_SIZE is 0.5 for our scaling (from C++)
-                    const pxHeight = off.height / (PRICE_SCROLL * 2);
-                    
-                    // Render Bids
-                    data.bids.forEach(bid => {
-                        const px = bid[0];
-                        const vol = bid[1];
-                        // diff from center
-                        const levelDiff = (lastPrice - px) / 0.5; // levels below
-                        if (levelDiff >= 0 && levelDiff < PRICE_SCROLL) {
-                            const y = off.height / 2 + (levelDiff * pxHeight);
-                            octx.fillStyle = getColor(vol);
-                            octx.fillRect(off.width - TICK_W, y, TICK_W, pxHeight);
-                        }
-                    });
+                    // Real Bookmap representation based on Absolute Prices
+                    const totalVisibleLevels = PRICE_SCROLL * 2;
+                    const pxHeight = off.height / totalVisibleLevels;
+                    // Fix subpixel gap bleeding by expanding rectangle height
+                    const drawHeight = Math.ceil(pxHeight) + 1;
 
-                    // Render Asks
-                    data.asks.forEach(ask => {
-                        const px = ask[0];
-                        const vol = ask[1];
-                        const levelDiff = (px - lastPrice) / 0.5; // levels above
-                        if (levelDiff >= 0 && levelDiff < PRICE_SCROLL) {
-                            const y = off.height / 2 - ((levelDiff + 1) * pxHeight);
+                    // Helper to draw a level
+                    const drawLevel = (lvlPrice, vol) => {
+                        if (lvlPrice <= topPrice && lvlPrice >= bottomPrice) {
+                            const levelsFromTop = (topPrice - lvlPrice) / TICK_SIZE;
+                            const y = Math.floor(levelsFromTop * pxHeight);
                             octx.fillStyle = getColor(vol);
-                            octx.fillRect(off.width - TICK_W, y, TICK_W, pxHeight);
+                            octx.fillRect(off.width - TICK_W, y, TICK_W, drawHeight);
                         }
-                    });
-                    
-                    // Render the price line
-                    octx.fillStyle = '#ff0055'; // neon red/pink line for price
-                    octx.fillRect(off.width - TICK_W, off.height/2 - pxHeight/2, TICK_W, pxHeight);
+                    };
 
-                    // Finally, copy offscreen to visible
+                    data.bids.forEach(bid => drawLevel(bid[0], bid[1]));
+                    data.asks.forEach(ask => drawLevel(ask[0], ask[1]));
+                    
+                    // Render the Current Price snaking through
+                    if (price <= topPrice && price >= bottomPrice) {
+                        const priceLevelsTop = (topPrice - price) / TICK_SIZE;
+                        const pY = Math.floor(priceLevelsTop * pxHeight);
+                        octx.fillStyle = '#ff0055'; // neon red/pink line for actual traded price
+                        octx.fillRect(off.width - TICK_W, pY, TICK_W, drawHeight);
+                    }
+
+                    // Copy offscreen to visible
                     ctx.drawImage(off, 0, 0);
                 }
             };
@@ -124,8 +122,6 @@ const HeatmapRenderer = () => {
         };
 
         const handleResize = () => {
-             // to keep things simple, we'll fix canvas size for ultra perf or let it resize. 
-             // Resizing a live shifting canvas requires recopying history. Simple reload on resize.
              if (containerRef.current && canvasRef.current) {
                 canvasRef.current.width = containerRef.current.clientWidth;
                 canvasRef.current.height = containerRef.current.clientHeight;

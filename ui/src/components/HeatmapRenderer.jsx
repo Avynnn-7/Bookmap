@@ -32,7 +32,13 @@ const HeatmapRenderer = () => {
     useEffect(() => {
         const fetchStream = () => {
             console.log("Connecting to SSE...");
-            const evtSource = new EventSource('http://localhost:3001/stream');
+            // Auto-detect if we're running locally vs Vercel
+            // If on Vercel, use the public tunnel to reach the home PC's backend
+            const endpoint = window.location.hostname === 'localhost' 
+                ? 'http://localhost:3001/stream' 
+                : 'https://e991bce81ac0b5.lhr.life/stream';
+            
+            const evtSource = new EventSource(endpoint);
             
             setStatus('Connected to C++ Engine Live Feed');
 
